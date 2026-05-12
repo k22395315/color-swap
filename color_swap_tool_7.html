@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>皮小姐衣櫃｜商品換色工具</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #faf9f7; --surface: #ffffff; --surface2: #f4f2ef;
+    --border: #e8e4de; --border2: #d5cfc7;
+    --text: #1a1816; --text2: #6b6560; --text3: #9e9790;
+    --accent: #c4956a; --accent-light: #f5ede3; --accent-dark: #9a6e47;
+    --success: #4a7c59; --success-light: #e8f4ec;
+    --danger: #b54a4a; --danger-light: #fbeaea;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; gap: 12px; }
+  .logo-mark { width: 36px; height: 36px; background: var(--text); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .logo-mark span { color: #fff; font-size: 14px; font-weight: 700; }
+  .logo-text .brand { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+  .logo-text .sub { font-size: 11px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; }
+  .main { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+  .page-title { font-size: 26px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.5px; }
+  .page-desc { font-size: 14px; color: var(--text2); margin-bottom: 24px; line-height: 1.6; }
+  .apikey-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .apikey-card label { font-size: 13px; font-weight: 500; color: var(--text2); white-space: nowrap; }
+  .apikey-card input { flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: monospace; background: var(--surface2); color: var(--text); }
+  .apikey-card input:focus { outline: none; border-color: var(--accent); }
+  .apikey-save-btn { padding: 8px 16px; background: var(--text); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; cursor: pointer; white-space: nowrap; }
+  .apikey-save-btn:hover { background: #2d2a26; }
+  .apikey-status { font-size: 12px; width: 100%; }
+  .apikey-status.ok { color: var(--success); }
+  .apikey-status.empty { color: var(--danger); }
+  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  @media (max-width: 640px) { .tool-grid { grid-template-columns: 1fr; } .main { padding: 20px 16px 48px; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card-label { font-size: 12px; font-weight: 500; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card-label .step-num { width: 20px; height: 20px; background: var(--text); color: #fff; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: 0; }
+  .upload-zone { border: 1.5px dashed var(--border2); border-radius: var(--radius-sm); background: var(--surface2); min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; overflow: hidden; text-align: center; padding: 20px; }
+  .upload-zone:hover { border-color: var(--accent); background: var(--accent-light); }
+  .upload-zone.has-image { border-style: solid; border-color: var(--border); }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-zone .up-icon { font-size: 32px; opacity: 0.3; }
+  .upload-zone .up-text { font-size: 13px; color: var(--text2); }
+  .upload-zone .up-hint { font-size: 11px; color: var(--text3); }
+  .upload-zone img.thumb { max-height: 180px; max-width: 100%; object-fit: contain; border-radius: var(--radius-sm); display: none; }
+  .upload-zone.has-image img.thumb { display: block; }
+  .upload-zone.has-image .up-icon, .upload-zone.has-image .up-text, .upload-zone.has-image .up-hint { display: none; }
+  .change-btn { margin-top: 8px; font-size: 11px; color: var(--text3); text-align: center; cursor: pointer; display: none; }
+  .change-btn:hover { color: var(--accent); }
+  textarea { width: 100%; min-height: 72px; font-family: inherit; font-size: 13px; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; resize: vertical; transition: border-color 0.2s; line-height: 1.6; margin-top: 8px; }
+  textarea:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  textarea::placeholder { color: var(--text3); }
+  .run-btn { width: 100%; padding: 14px; background: var(--text); color: #fff; border: none; border-radius: var(--radius-sm); font-family: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 20px; letter-spacing: 0.5px; }
+  .run-btn:hover { background: #2d2a26; }
+  .run-btn:active { transform: scale(0.99); }
+  .run-btn:disabled { background: var(--border2); cursor: not-allowed; transform: none; }
+  .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-bar { margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; display: none; line-height: 1.5; }
+  .status-bar.loading { background: var(--accent-light); color: var(--accent-dark); display: block; }
+  .status-bar.error { background: var(--danger-light); color: var(--danger); display: block; }
+  .status-bar.success { background: var(--success-light); color: var(--success); display: block; }
+  .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-top: 20px; display: none; }
+  .result-card.visible { display: block; }
+  .result-header { font-size: 13px; font-weight: 500; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+  .result-img-wrap { text-align: center; }
+  .result-img-wrap img { max-width: 100%; border-radius: var(--radius); border: 1px solid var(--border); }
+  .download-btn { width: 100%; margin-top: 16px; padding: 12px; background: var(--success); color: #fff; border: none; border-radius: var(--radius-sm); font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+  .download-btn:hover { background: #3d6b4a; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-mark"><span>皮</span></div>
+  <div class="logo-text">
+    <div class="brand">皮小姐衣櫃</div>
+    <div class="sub">商品換色工具 v2</div>
+  </div>
+</header>
+<div class="main">
+  <h1 class="page-title">商品換色工具</h1>
+  <p class="page-desc">上傳原始商品圖 + 目標顏色參考圖 → AI 直接生成換色後的圖片</p>
+
+  <div class="apikey-card">
+    <label>🔑 OpenAI API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-proj-..." autocomplete="off">
+    <button class="apikey-save-btn" onclick="saveApiKey()">儲存</button>
+    <div class="apikey-status" id="apiKeyStatus"></div>
+  </div>
+
+  <div class="tool-grid">
+    <div class="card">
+      <div class="card-label"><span class="step-num">1</span> 原始商品圖</div>
+      <div class="upload-zone" id="origZone">
+        <input type="file" accept="image/*" id="origInput">
+        <div class="up-icon">📷</div>
+        <div class="up-text">點擊上傳原始商品圖</div>
+        <div class="up-hint">支援 JPG、PNG、WEBP</div>
+        <img class="thumb" id="origThumb" alt="原圖預覽">
+      </div>
+      <div class="change-btn" id="origChangeBtn" onclick="resetOrig()">重新上傳</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="step-num">2</span> 目標顏色參考圖</div>
+      <div class="upload-zone" id="colorZone">
+        <input type="file" accept="image/*" id="colorInput">
+        <div class="up-icon">🎨</div>
+        <div class="up-text">上傳目標顏色的商品圖</div>
+        <div class="up-hint">AI 會從這張圖抓取顏色</div>
+        <img class="thumb" id="colorThumb" alt="顏色參考圖">
+      </div>
+      <div class="change-btn" id="colorChangeBtn" onclick="resetColor()">重新上傳</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-label"><span class="step-num">3</span> 補充說明（選填）</div>
+    <textarea id="extraNote" placeholder="例如：只換泳衣顏色，保留人物、背景、版型完全不變 / 只換上衣顏色，褲子不要動"></textarea>
+  </div>
+
+  <button class="run-btn" id="runBtn" onclick="runSwap()">
+    <div class="spinner" id="spinner"></div>
+    <span id="runLabel">✦ 開始換色出圖</span>
+  </button>
+
+  <div class="status-bar" id="statusBar"></div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-header">✓ 換色完成</div>
+    <div class="result-img-wrap">
+      <img id="resultImg" alt="換色結果">
+    </div>
+    <button class="download-btn" id="downloadBtn" onclick="downloadResult()">⬇ 下載換色圖片</button>
+  </div>
+</div>
+
+<script>
+let origBase64 = null, origMime = 'image/jpeg';
+let colorBase64 = null, colorMime = 'image/jpeg';
+let resultDataUrl = null;
+
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('openai_api_key');
+  if (saved) {
+    document.getElementById('apiKeyInput').value = saved;
+    document.getElementById('apiKeyStatus').textContent = '✓ API Key 已載入';
+    document.getElementById('apiKeyStatus').className = 'apikey-status ok';
+  }
+});
+
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { document.getElementById('apiKeyStatus').textContent = '請輸入 API Key'; document.getElementById('apiKeyStatus').className = 'apikey-status empty'; return; }
+  localStorage.setItem('openai_api_key', key);
+  document.getElementById('apiKeyStatus').textContent = '✓ 已儲存，下次自動載入';
+  document.getElementById('apiKeyStatus').className = 'apikey-status ok';
+}
+
+function setupUpload(inputId, thumbId, zoneId, changeBtnId, isOrig) {
+  document.getElementById(inputId).addEventListener('change', function(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const mime = file.type || 'image/jpeg';
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const dataUrl = ev.target.result;
+      const b64 = dataUrl.split(',')[1];
+      if (isOrig) { origBase64 = b64; origMime = mime; }
+      else { colorBase64 = b64; colorMime = mime; }
+      document.getElementById(thumbId).src = dataUrl;
+      document.getElementById(zoneId).classList.add('has-image');
+      document.getElementById(changeBtnId).style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+setupUpload('origInput', 'origThumb', 'origZone', 'origChangeBtn', true);
+setupUpload('colorInput', 'colorThumb', 'colorZone', 'colorChangeBtn', false);
+
+function resetOrig() { origBase64 = null; document.getElementById('origThumb').src = ''; document.getElementById('origZone').classList.remove('has-image'); document.getElementById('origChangeBtn').style.display = 'none'; document.getElementById('origInput').value = ''; }
+function resetColor() { colorBase64 = null; document.getElementById('colorThumb').src = ''; document.getElementById('colorZone').classList.remove('has-image'); document.getElementById('colorChangeBtn').style.display = 'none'; document.getElementById('colorInput').value = ''; }
+
+function setStatus(msg, type) {
+  const bar = document.getElementById('statusBar');
+  bar.textContent = msg; bar.className = 'status-bar ' + type;
+}
+
+async function runSwap() {
+  const apiKey = localStorage.getItem('openai_api_key') || document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) { setStatus('請先輸入並儲存 OpenAI API Key', 'error'); return; }
+  if (!origBase64) { setStatus('請上傳原始商品圖', 'error'); return; }
+  if (!colorBase64) { setStatus('請上傳目標顏色參考圖', 'error'); return; }
+
+  const extra = document.getElementById('extraNote').value.trim();
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  document.getElementById('spinner').style.display = 'block';
+  document.getElementById('runLabel').textContent = '生成中，約30秒...';
+  document.getElementById('resultCard').classList.remove('visible');
+  setStatus('AI 正在分析並生成換色圖片，請稍候...', 'loading');
+
+  try {
+    // Step 1: 用 GPT-4o 分析參考圖的顏色
+    setStatus('步驟 1/2：AI 分析參考圖顏色中...', 'loading');
+    const colorAnalysisRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({
+        model: 'gpt-4o-2024-11-20',
+        max_tokens: 200,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: 'data:' + colorMime + ';base64,' + colorBase64 } },
+            { type: 'text', text: '請分析這張圖片中服裝的主要顏色，用英文精確描述顏色（例如：dusty rose pink, warm camel beige, sage green 等），只需要給顏色描述，不需要其他說明，20字以內。' }
+          ]
+        }]
+      })
+    });
+    const colorData = await colorAnalysisRes.json();
+    if (colorData.error) throw new Error(colorData.error.message);
+    const colorDesc = colorData.choices?.[0]?.message?.content?.trim() || 'the color from the reference image';
+
+    // Step 2: 用 GPT Image 換色
+    setStatus('步驟 2/2：AI 正在生成換色圖片，約30秒...', 'loading');
+    const origBlob = await resizeAndConvertToPng(origBase64, origMime);
+
+    const prompt = `Change the color of the clothing/garment in this image to ${colorDesc}. Keep everything else exactly the same: the person, pose, background, clothing style, fabric texture, shadows, and lighting. Only change the clothing color. Make it look photorealistic as if it was originally photographed in this color.${extra ? ' ' + extra : ''}`;
+
+    const formData = new FormData();
+    formData.append('model', 'gpt-image-1');
+    formData.append('prompt', prompt);
+    formData.append('n', '1');
+    formData.append('size', '1024x1024');
+    formData.append('image', new File([origBlob], 'image.png', { type: 'image/png' }));
+
+    const res = await fetch('https://api.openai.com/v1/images/edits', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      body: formData
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const imgData = data.data?.[0];
+    if (!imgData) throw new Error('沒有收到圖片結果');
+
+    let imgSrc = '';
+    if (imgData.url) {
+      imgSrc = imgData.url;
+      resultDataUrl = imgData.url;
+    } else if (imgData.b64_json) {
+      imgSrc = 'data:image/png;base64,' + imgData.b64_json;
+      resultDataUrl = imgSrc;
+    }
+
+    document.getElementById('resultImg').src = imgSrc;
+    document.getElementById('resultCard').classList.add('visible');
+    setStatus('✓ 換色完成！', 'success');
+
+  } catch (err) {
+    setStatus('發生錯誤：' + err.message, 'error');
+  }
+
+  btn.disabled = false;
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('runLabel').textContent = '✦ 重新換色';
+}
+
+async function resizeAndConvertToPng(b64, mime) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const max = 1024;
+      let w = img.width, h = img.height;
+      if (w > max || h > max) {
+        if (w > h) { h = Math.round(h * max / w); w = max; }
+        else { w = Math.round(w * max / h); h = max; }
+      }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(resolve, 'image/png');
+    };
+    img.src = 'data:' + mime + ';base64,' + b64;
+  });
+}
+
+function downloadResult() {
+  if (!resultDataUrl) return;
+  if (resultDataUrl.startsWith('http')) {
+    window.open(resultDataUrl, '_blank');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = resultDataUrl;
+  a.download = 'color_swap_result.png';
+  a.click();
+}
+</script>
+</body>
+</html>
